@@ -1,0 +1,91 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+ifeq ($(shell dpkg-vendor --derives-from Ubuntu && echo yes),yes)
+	SUBSTVARS = -Vnss:Depends="libnss3 (>= 3.12.9+ckbi-1.82-0ubuntu3~)" \
+				-Vjre:Depends="openjdk-7-jre-headless (>= 7~u3-2.1.1~pre1-1)"
+	nss_lib = libnss3
+else
+	SUBSTVARS = -Vnss:Depends="libnss3 (>= 3.12.10-2~)" \
+				-Vjre:Depends="openjdk-6-jre-headless (>= 6b16-1.6.1-2)"
+	nss_lib = libnss3
+endif
+
+JAVA_HOME := /usr/lib/jvm/default-java
+export JAVA_HOME
+OPTS := --no-javadoc --main=UpdateCertificates --javacopts="-source 1.6 -target 1.6"
+CLASSPATH := /usr/share/java/junit4.jar
+export CLASSPATH
+
+do_junit = $(if $(findstring nocheck,$(DEB_BUILD_OPTIONS)),,yes)
+
+d = debian/ca-certificates-java
+
+build-arch: build
+build-indep: build
+build: build-stamp
+build-stamp:
+	dh_testdir
+	jh_build $(OPTS) ca-certificates-java.jar .
+ifeq ($(do_junit),yes)
+	$(JAVA_HOME)/bin/java -cp /usr/share/java/junit4.jar:./ca-certificates-java.jar \
+	org.junit.runner.JUnitCore \
+	UpdateCertificatesTest
+endif
+	touch $@
+
+clean:
+	dh_testdir
+	dh_testroot
+	jh_build --clean
+	$(RM) build-stamp
+	$(RM) ca-certificates-java.jar
+	$(RM) tests-cacerts 
+	dh_clean
+	for f in debian/*.in; do \
+	  f2=$$(echo $$f | sed ';s/\.in$$//'); \
+	  rm -f $$f2; \
+	done
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_prep
+	dh_installdirs \
+		usr/share/ca-certificates-java \
+		etc/default \
+		etc/ssl/certs/java \
+		etc/ca-certificates/update.d
+	for f in debian/*.in; do \
+	  f2=$$(echo $$f | sed 's/\.in$$//'); \
+	  sed -e 's/@NSS_LIB@/$(nss_lib)/g' \
+	    $$f > $$f2; \
+	done
+	install -m755 debian/jks-keystore.hook \
+		$(d)/etc/ca-certificates/update.d/jks-keystore
+	install -m600 debian/default \
+		$(d)/etc/default/cacerts
+	dh_install ca-certificates-java.jar /usr/share/ca-certificates-java/
+
+# Build architecture-independent files here.
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installchangelogs 
+	dh_installdocs
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_gencontrol -- $(SUBSTVARS)
+	dh_md5sums
+	dh_builddeb
+
+# Build architecture-dependent files here.
+binary-arch: build install
+# We have nothing to do by default.
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary install
