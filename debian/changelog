@@ -1,3 +1,9 @@
+ca-certificates-java (20130815+nmu2) unstable; urgency=low
+
+  * postinst, jks-keystore.hook: fixed Oracle discovery
+
+ -- Lance Linder <llinder@bloomhealth.com>  Mon, 31 Mar 2013 15:55:00 -0500
+
 ca-certificates-java (20130815+nmu1) unstable; urgency=low
 
   * postinst, jks-keystore.hook: check for Oracle jre

@@ -28,7 +28,7 @@ setup_path()
 {
     for jvm in java-6-openjdk-$arch java-6-openjdk \
                java-7-openjdk-$arch java-7-openjdk \
-               java-6-sun java-*-oracle; do
+               java-6-sun java-7-oracle java-8-oracle; do
     if [ -x /usr/lib/jvm/$jvm/bin/java ]; then
         break
         fi
